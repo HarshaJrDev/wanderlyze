@@ -2,6 +2,8 @@
 #
 .DS_Store
 
+config
+
 # Xcode
 #
 build/
@@ -21,6 +23,8 @@ DerivedData
 *.ipa
 *.xcuserstate
 **/.xcode.env.local
+
+services.js
 
 # Android/IntelliJ
 #
