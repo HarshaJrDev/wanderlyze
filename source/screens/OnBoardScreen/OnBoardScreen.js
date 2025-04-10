@@ -110,7 +110,7 @@ const OnBoardScreen = ({ navigation }) => {
         <Animatable.View animation="fadeInUp" delay={100} style={styles.buttonWrapper}>
           <Pressable
             style={styles.getStartedBtn}
-            onPress={() => navigation.replace('Home')}
+            onPress={() => navigation.replace('SignIn')}
           >
             <Text style={styles.getStartedText}>Get Started</Text>
           </Pressable>
@@ -118,7 +118,7 @@ const OnBoardScreen = ({ navigation }) => {
       ) : (
         <View style={styles.navButtons}>
           <Pressable
-            onPress={() => navigation.replace('Home')}
+            onPress={() => navigation.replace('SignIn')}
             style={styles.glassBtn}
           >
             <Text style={styles.glassBtnText}>Skip</Text>
