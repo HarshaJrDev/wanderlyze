@@ -13,7 +13,8 @@ export interface User {
     SignIn: undefined;
     SignUp: undefined;
     SplashScreen:undefined;
-    OnBoardScreen:undefined
+    OnBoardScreen:undefined;
+    HomeScreen:undefined
   };
   
   export type MainStackParamList = {

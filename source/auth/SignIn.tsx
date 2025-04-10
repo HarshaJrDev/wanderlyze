@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+// SignIn.tsx
+import React, { useRef, useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
@@ -6,73 +7,120 @@ import {
   Platform,
   TouchableOpacity,
   ScrollView,
+  Animated,
+  Alert,
+  Image,
 } from 'react-native';
-import { Text, Title, RadioButton, TextInput as PaperInput } from 'react-native-paper';
-
+import { Text, TextInput as PaperInput } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import * as Animatable from 'react-native-animatable';
+import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
+
 import { AuthStackParamList } from '../types';
 import { useAuth } from '../hooks/useAuth';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import LoadingOverlay from '../components/LoadingOverlay';
-import * as Animatable from 'react-native-animatable';
-import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
-import { COLORS } from '../constants/Colors';
+import { COLORS, SCREEN_HEIGHT, SCREEN_WIDTH } from '../constants/Colors';
 import { fonts } from '../utils/fonts';
 
 type SignInScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'SignIn'>;
 
 const SignIn = () => {
+  const navigation = useNavigation<SignInScreenNavigationProp>();
+  const { signIn } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
 
-  const navigation = useNavigation<SignInScreenNavigationProp>();
-  const { signIn } = useAuth();
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const scaleAnim = useRef(new Animated.Value(0.5)).current;
+  const textFadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        friction: 5,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      Animated.timing(textFadeAnim, {
+        toValue: 1,
+        duration: 800,
+        useNativeDriver: true,
+      }).start();
+    });
+  }, [fadeAnim, scaleAnim, textFadeAnim]);
 
   const validate = () => {
     const newErrors: { email?: string; password?: string } = {};
-
     if (!email) newErrors.email = 'Email is required';
     else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = 'Email is invalid';
-
     if (!password) newErrors.password = 'Password is required';
     else if (password.length < 6) newErrors.password = 'Password must be at least 6 characters';
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSignIn = async () => {
     if (!validate()) return;
-
     setIsLoading(true);
     const { error } = await signIn(email, password);
     setIsLoading(false);
-
-    if (error) {
-      alert(error.message);
-    }
+    if (error) Alert.alert(error.message);
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Animatable.View animation="fadeInUp" duration={1000} style={styles.header}>
-          <View style={styles.headerRow}>
-            <Icon name="account-circle-outline" size={28} color={COLORS.primary} style={styles.headerIcon} />
-            <Title style={styles.title}>Welcome Back!</Title>
-          </View>
-          <Text style={styles.subtitle}>Sign in to continue</Text>
+    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        {/* Header */}
+        <Animatable.View animation="fadeInDown" duration={800} style={styles.header}>
+          <Animated.Image
+            source={require('../../assets/images/SplashIcon.png')}
+            style={[
+              styles.image,
+              {
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }],
+              },
+            ]}
+          />
+          <Animated.Text style={[styles.subtitle, { opacity: textFadeAnim }]}>
+            Sign in to continue
+          </Animated.Text>
         </Animatable.View>
 
+        {/* Highlights */}
+        <View style={styles.highlightsContainer}>
+          {[
+            { icon: 'shield-lock-outline', label: 'Secure Login' },
+            { icon: 'rocket-launch-outline', label: 'Fast Performance' },
+            { icon: 'account-multiple-outline', label: 'Trusted by Thousands' },
+          ].map((item, index) => (
+            <View key={index} style={styles.highlightItem}>
+              <Icon name={item.icon} size={20} color={COLORS.primary} />
+              <Text style={styles.highlightText}>{item.label}</Text>
+            </View>
+          ))}
+        </View>
+
+        {/* Form */}
         <Animatable.View animation="fadeInUp" delay={300} duration={1000} style={styles.form}>
+          <Text style={styles.label}>Email Address</Text>
           <Input
             label="Email"
             value={email}
@@ -80,15 +128,18 @@ const SignIn = () => {
             error={errors.email}
             keyboardType="email-address"
             autoCapitalize="none"
+            textColor="#fff"
             left={<PaperInput.Icon icon="email-outline" />}
           />
 
+          <Text style={styles.label}>Password</Text>
           <Input
             label="Password"
             value={password}
             onChangeText={setPassword}
             error={errors.password}
             secureTextEntry={!showPassword}
+            textColor="#fff"
             left={<PaperInput.Icon icon="lock-outline" />}
             right={
               <PaperInput.Icon
@@ -106,12 +157,10 @@ const SignIn = () => {
           </Button>
         </Animatable.View>
 
+        {/* Footer */}
         <Animatable.View animation="fadeIn" delay={600} duration={1000} style={styles.footer}>
           <Text style={styles.footerText}>Don't have an account?</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('SignUp')}
-            style={styles.footerLinkContainer}
-          >
+          <TouchableOpacity onPress={() => navigation.navigate('SignUp')} style={styles.footerLinkContainer}>
             <Icon name="account-plus-outline" size={16} color={COLORS.primary} style={styles.footerIcon} />
             <Text style={styles.link}>Sign Up</Text>
           </TouchableOpacity>
@@ -126,45 +175,78 @@ const SignIn = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#0F172A', // Dark modern background
   },
   scrollContent: {
     flexGrow: 1,
-    padding: 20,
+    padding: 24,
     justifyContent: 'center',
   },
   header: {
-    marginBottom: 30,
     alignItems: 'center',
-  },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  headerIcon: {
-    marginRight: 8,
-  },
-  title: {
-    fontFamily: fonts.bold,
-    fontSize: 28,
-    color: COLORS.primary,
+    marginBottom: 20,
   },
   subtitle: {
     fontFamily: fonts.regular,
     fontSize: 16,
-    color: COLORS.textLight,
-    marginTop: 4,
+    color: '#CBD5E1',
+    marginTop: 8,
+  },
+  image: {
+    height: SCREEN_HEIGHT * 0.22,
+    width: SCREEN_WIDTH * 0.5,
+    resizeMode: 'contain',
+    marginVertical: 10,
+  },
+  highlightsContainer: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  highlightItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginVertical: 6,
+  },
+  highlightText: {
+    marginLeft: 10,
+    fontSize: 14,
+    fontFamily: fonts.medium,
+    color: '#F8FAFC',
   },
   form: {
-    width: '100%',
+    backgroundColor: '#1E293B',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 30,
+    borderWidth: 1,
+    borderColor: '#334155',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  label: {
+    fontFamily: fonts.medium,
+    fontSize: 14,
+    color: '#F1F5F9',
+    marginTop: 10,
+    marginBottom: 4,
   },
   button: {
     marginTop: 20,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
   },
   buttonContent: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 10,
   },
   buttonIcon: {
     marginRight: 6,
@@ -175,25 +257,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   footer: {
-    marginTop: 40,
+    marginTop: 10,
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
   },
   footerText: {
     fontFamily: fonts.regular,
-    marginRight: 5,
+    color: '#CBD5E1',
+    fontSize: 14,
   },
   footerLinkContainer: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginLeft: 6,
   },
   footerIcon: {
     marginRight: 4,
   },
   link: {
     fontFamily: fonts.medium,
-    color: COLORS.primary,
+    color: '#38BDF8',
+    fontSize: 14,
   },
 });
 
